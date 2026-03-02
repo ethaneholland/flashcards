@@ -1,0 +1,23 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --background-main: #faf8f5;
+  --background-main-header: rgba(250, 248, 245, 0.85);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --font: Verdana, sans-serif;
+  --color-text: #333;  
+  --color-muted: #aaa;
+  --color-faint: #ccc;  
+  --subject-card-primary: #FFF9C4;
+  --subject-card-border: #F9A825;
+  --subject-card-darker: #b8860b; 
+  --draggable-card-primary: #ffffff;
+  --draggable-card-border: #bbb;
+  --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --red: #e53935;
+  --header-indent: 46px;
+}

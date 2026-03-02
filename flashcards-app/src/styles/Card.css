@@ -1,0 +1,91 @@
+
+.card {
+  position: absolute;
+  width: 220px;
+  min-height: 148px;
+  max-height: 50vh;
+  background: var(--draggable-card-primary);
+  border: 2px solid var(--draggable-card-border);
+  border-radius: 12px;
+  box-shadow: none;
+  padding: 12px 14px 14px;
+  user-select: none; 
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  font-family: var(--font);
+  transition: box-shadow 0.2s;
+  cursor: grab;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.card-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.card-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.card-btn-lock svg {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.card-btn-lock:hover svg {
+  opacity: 1;
+}
+
+.card-btn-delete {
+  font-size: 16px;
+  line-height: 1;
+  color: #999;
+  font-family: var(--font);
+}
+
+.card-btn-delete:hover {
+  color: var(--color-text);
+}
+
+.card-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; 
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    rgba(0, 0, 0, 0.08) 27px,
+    rgba(0, 0, 0, 0.08) 28px
+  );
+  background-position-y: 4px; 
+}
+
+.card-textarea {
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 28px;
+  min-height: 112px;
+  display: block;
+  overflow: hidden;
+  cursor: text;
+  padding: 4px 0 0 0;
+}

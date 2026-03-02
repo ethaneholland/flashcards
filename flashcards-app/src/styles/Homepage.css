@@ -1,0 +1,111 @@
+.homepage {
+  width: 100vw;
+  min-height: 100vh;
+  background-color: var(--background-main);
+  font-family: var(--font);
+}
+
+.homepage-grid-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.homepage-grid {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 88px 24px 40px; 
+  justify-content: center;
+}
+
+.homepage-empty {
+  width: 100%;
+  text-align: center;
+  color: var(--color-muted);
+  padding-top: 80px;
+  font-size: 16px;
+}
+
+.new-subject-tile {
+  width: 220px;
+  min-height: 160px;
+  background: var(--subject-card-primary);
+  border: 2px solid var(--subject-card-border);
+  border-radius: 12px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: var(--font);
+  gap: 10px;
+  transition: box-shadow 0.15s;
+  user-select: none;
+}
+
+.new-subject-tile:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.new-subject-tile-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--subject-card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.new-subject-tile-label {
+  font-size: 12px;
+  color: var(--subject-card-darker);
+  font-weight: 700;
+}
+
+.subject-card {
+  width: 220px;
+  min-height: 160px;
+  background: var(--subject-card-primary);
+  border: 2px solid var(--subject-card-border);
+  border-radius: 12px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: var(--font);
+  position: relative;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.subject-card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.subject-card-spacer {
+  height: 29px;
+  flex-shrink: 0;
+}
+
+.subject-card-body {
+  padding: 6px 14px 8px;
+  flex: 1;
+  text-align: center;
+}
+
+.subject-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.subject-card-meta {
+  font-size: 11px;
+  color: var(--color-muted);
+}
