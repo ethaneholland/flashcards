@@ -9,4 +9,4 @@ Project was set up with [https://www.w3schools.com/react/react_getstarted.asp](h
  - Clone repository
  - `cd` into flashcards-app
  - `npm install`
- - `npm start`>git
+ - `npm start`
