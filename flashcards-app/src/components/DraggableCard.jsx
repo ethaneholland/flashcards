@@ -21,10 +21,13 @@ const IconHide = () => (
 export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, onCtrlClick, isSelected }) {
   const textRef = useRef(null);
 
+  // Single source of truth: card.status is one of "locked" | "revise" | "hidden" | "normal"
+  // Default is "locked" (set at card creation in Board.jsx)
+  const status = card.status ?? "locked";
+
   let cardClass = "card";
-  if (card.locked) cardClass += " card-locked";
-  if (card.status === "revise") cardClass += " card-revise";
-  if (card.status === "hidden") cardClass += " card-hidden";
+  if (status === "revise") cardClass += " card-revise";
+  if (status === "hidden") cardClass += " card-hidden";
   if (isSelected) cardClass += " card-selected";
 
   useEffect(() => {
@@ -36,7 +39,6 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
 
   // --- EVENT HANDLERS ---
   function handleMouseDown(event) {
-    // Handle Ctrl+Click for drawing lines
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
       onCtrlClick(card.id);
@@ -46,75 +48,73 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
   }
 
   // --- FUNCTIONS --- //
-  const toggleLock = (e) => {
+  // Each button sets the status exclusively. Clicking an already-active button
+  // returns to "normal" (deactivate), except lock which stays on toggle.
+  const setStatus = (e, newStatus) => {
     e.stopPropagation();
-    onUpdate(card.id, { locked: !card.locked });
-  };
-
-  const toggleRevise = (e) => {
-    e.stopPropagation();
-    onUpdate(card.id, { status: card.status === "revise" ? "normal" : "revise" });
-  };
-
-  const toggleHide = (e) => {
-    e.stopPropagation();
-    onUpdate(card.id, { status: card.status === "hidden" ? "normal" : "hidden" });
+    onUpdate(card.id, { status: status === newStatus ? "normal" : newStatus });
   };
 
   return (
     <div 
       className={cardClass} 
       style={{ left: `${card.x}px`, top: `${card.y}px`, zIndex: card.zIndex, position: 'absolute' }}
-      onMouseDown={card.locked ? (e) => e.stopPropagation() : handleMouseDown} // Prevent drag if locked
+      onMouseDown={handleMouseDown}
     >
       <div className="card-toolbar">
         <div className="card-toolbar-left">
-          {/* Lock Button */}
-          <button className={`card-btn ${card.status === 'lock' ? 'active' : ''}`} onMouseDown={toggleLock} title="Lock this card">
-            {card.locked ? <IconLock /> : <IconUnlock />}
+          {/* Lock Button — carries card over to next canvas, active = red */}
+          <button
+            className={`card-btn ${status === 'locked' ? 'active active-lock' : ''}`}
+            onMouseDown={(e) => setStatus(e, "locked")}
+            title="Carry over to next canvas"
+          >
+            {status === 'locked' ? <IconLock /> : <IconUnlock />}
           </button>
 
-          {/*Only show revise and hide if NOT locked*/}
-          {!card.locked && (
-            <>
-              {/* Revise Button */}
-              <button className={`card-btn ${card.status === 'revise' ? 'active' : ''}`} onMouseDown={toggleRevise} title="Mark for Revision">
-                <IconRevise />
-              </button>
-              
-              {/* Hide Button */}
-              <button className={`card-btn ${card.status === 'hidden' ? 'active' : ''}`} onMouseDown={toggleHide} title="Hide in this Version">
-                <IconHide />
-              </button>
-            </>
-          )}
+          {/* Revise Button — carries over with dotted border until edited */}
+          <button
+            className={`card-btn ${status === 'revise' ? 'active' : ''}`}
+            onMouseDown={(e) => setStatus(e, "revise")}
+            title="Mark for Revision"
+          >
+            <IconRevise />
+          </button>
+          
+          {/* Hide Button — card will not carry over to next canvas */}
+          <button
+            className={`card-btn ${status === 'hidden' ? 'active' : ''}`}
+            onMouseDown={(e) => setStatus(e, "hidden")}
+            title="Hide in this Version"
+          >
+            <IconHide />
+          </button>
         </div>
 
         <button 
-          className={`card-btn card-btn-delete ${card.locked ? 'disabled' : ''}`} 
+          className="card-btn card-btn-delete" 
           onMouseDown={(e) => { 
             e.stopPropagation(); 
-            if (!card.locked) onDelete(card.id); 
+            onDelete(card.id); 
           }}
-          style={{ 
-            opacity: card.locked ? 0.2 : 1, 
-            cursor: card.locked ? 'not-allowed' : 'pointer' 
-          }}
-          title={card.locked ? "Unlock to delete" : "Delete"}
+          title="Delete"
         >
           ×
         </button>
       </div>
       
-      {/* Body - Disable typing if locked */}
       <div className="card-body" onMouseDown={e => e.stopPropagation()}>
         <textarea
           ref={textRef}
           className="card-textarea"
           value={card.text}
-          disabled={card.locked} 
-          onChange={(e) => onUpdate(card.id, { text: e.target.value })}
-          placeholder={card.locked ? "Locked" : "Write something..."}
+          onChange={(e) => {
+            // Editing a "revise" card clears the dotted border
+            const changes = { text: e.target.value };
+            if (status === "revise") changes.status = "normal";
+            onUpdate(card.id, changes);
+          }}
+          placeholder="Write something..."
         />
       </div>
     </div>

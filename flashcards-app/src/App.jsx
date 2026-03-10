@@ -38,10 +38,11 @@ export default function App() {
     setSubject(prev => {
       const current = prev.versions[verIndex];
 
-      // clones cards that are not marked as hidden on the previous version
+      // Cards with status 'hidden' are dropped. 'locked' and 'revise' cards carry over.
+      // Carried-over locked cards reset to 'locked' (no change). Revise cards keep their status.
       const inheritedCards = current.cards
         .filter(card => card.status !== 'hidden')
-        .map(card => ({ ...card })); 
+        .map(card => ({ ...card, locked: false })); 
 
       // keeps lines where both connected cards still exist, otherwise don't clone them
       const inheritedIds = inheritedCards.map(c => c.id);

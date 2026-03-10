@@ -95,8 +95,7 @@
 }
 
 .card.card-revise {
-  background: #fffde7;
-  border-color: #fbc02d;
+  border-style: dashed;
 }
 
 .card.card-hidden {
@@ -104,8 +103,6 @@
   filter: grayscale(100%);
   border-style: dashed;
 }
-
-
 .card-toolbar-left {
   display: flex;
   gap: 8px;
@@ -141,6 +138,16 @@
   animation: lock-snap 0.2s ease-out;
 }
 
+/* Lock button active state — red instead of blue */
+.card-btn.active-lock {
+  background-color: rgba(220, 38, 38, 0.1) !important;
+}
+
+.card-btn.active-lock svg {
+  stroke: #dc2626 !important;
+  filter: drop-shadow(0 0 2px rgba(220, 38, 38, 0.2)) !important;
+}
+
 @keyframes lock-snap {
   0% { transform: scale(1); }
   50% { transform: scale(1.2); }
@@ -154,13 +161,6 @@
 
 .card-btn:hover svg {
   stroke: #475569;
-}
-
-.card.card-locked {
-  background-color: #eceff1 !important;
-  border-color: #cfd8dc !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
-  transition: all 0.3s ease;
 }
 
 .card-removed {

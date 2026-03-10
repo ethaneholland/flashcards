@@ -63,7 +63,7 @@ export default function Board({
     y: e.clientY - rect.top - 70,
     text: "",
     zIndex: newZ,
-    status: "normal"
+    status: "locked"
   };
   
   const newCards = [...cards, newCard];
