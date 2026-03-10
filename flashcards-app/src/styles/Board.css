@@ -4,7 +4,9 @@
   background-color: var(--background-main);
   background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.15) 1px, transparent 0);
   background-size: 28px 28px;
-  position: relative;
+  position: absolute; /* Changed from relative to absolute to fill the wrapper */
+  top: 0;
+  left: 0;
   overflow: hidden;
 }
 

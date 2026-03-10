@@ -21,20 +21,26 @@ export default function Homepage({ subject, onOpenSubject }) {
     <div className="homepage">
 
       {/* ── Header ── */}
-      <div className="header">
+      <header className="header">
         <div className="header-inner">
-          <div className="header-site-title">Flashcards</div>
+          <div className="header-inner-with-back">
+            
+            {/* Breadcrumb */}
+            <div className="header-pill left-pill">
+              <span className="crumb clickable" onClick={openDialog}>Home</span>
+              <span className="sep">//</span>
+              <span className="crumb active">Sample Subject</span>
+            </div>
 
-          {/* Breadcrumb */}
-          <div className="header-breadcrumb">
-            <button className="header-crumb-btn" onClick={openDialog}>
-              <span>Home</span>
-            </button>
-            <span className="header-crumb-sep">›</span>
-            <span className="header-crumb header-crumb-active">Sample Subject</span>
+            {/* Center Version Navigation */}
+            <div className="version-navigator-container"></div>
+
+            {/* Empty slot, board screen uses the new and delete buttons here */}
+            <div className="header-actions-right"></div>
+
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Body of the homepage */}
       <div className="homepage-grid-wrapper">

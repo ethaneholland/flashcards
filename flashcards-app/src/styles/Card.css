@@ -93,3 +93,78 @@
   cursor: text;
   padding: 4px 0 0 0;
 }
+
+.card.card-revise {
+  background: #fffde7;
+  border-color: #fbc02d;
+}
+
+.card.card-hidden {
+  opacity: 0.35;
+  filter: grayscale(100%);
+  border-style: dashed;
+}
+
+
+.card-toolbar-left {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.card-btn {
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.card-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.card-btn.active {
+  background: rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.card-btn.active svg {
+  stroke: #2563eb;
+  stroke-width: 2.5px;
+  filter: drop-shadow(0 0 2px rgba(37, 99, 235, 0.2));
+}
+
+.card-btn.active {
+  background-color: rgba(37, 99, 235, 0.1) !important;
+  transform: scale(1.05);
+  animation: lock-snap 0.2s ease-out;
+}
+
+@keyframes lock-snap {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1.05); }
+}
+
+.card-btn:not(.active) svg {
+  stroke: #94a3b8;
+  transition: stroke 0.2s, transform 0.2s;
+}
+
+.card-btn:hover svg {
+  stroke: #475569;
+}
+
+.card.card-locked {
+  background-color: #eceff1 !important;
+  border-color: #cfd8dc !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s ease;
+}
+
+.card-removed {
+  opacity: 0.4;
+  filter: grayscale(100%);
+  border: 2px dashed #ccc;
+}

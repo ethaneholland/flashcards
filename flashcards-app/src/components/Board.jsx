@@ -15,9 +15,17 @@ const PINNED_HEIGHT = 160;
 const PINNED_TOP    = 87;  // Distance from top of viewport to the pinned card
 
 // --- CLASS --- //
-export default function Board({ subject, onUpdateSubject, onBack }) {
-  // --- STATE --- //
-  // Set up error dialog
+export default function Board({ 
+  subjectTitle, 
+  versions, 
+  verIndex, 
+  onSetVerIndex, 
+  onSaveVersion, 
+  onCreateVersion, 
+  onBack }) {
+
+  const currentVersion = versions[verIndex];
+
   let [showErrorDialog, setShowErrorDialog] = useState(false);
   function openDialog() {
     setShowErrorDialog(true);
@@ -25,22 +33,65 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
   function closeDialog() {
     setShowErrorDialog(false);
   }
-  // Local copy of the cards which is synced back to the parent subject on every change.
-  let [cards, setCards] = useState(subject.cards || []);
-  // Tracks the highest z-index in use so newly dragged cards always appear on top.
-  let [maxZIndex, setMaxZIndex] = useState(0);
-  // Stores drag state on mouse moves
-  let dragging = useRef(null);
-  // Reference to the board div
-  let boardRef = useRef(null);
-  let [selectedCards, setSelectedCards] = useState([]);
-  let [lines, setLines] = useState([]);
 
-  // --- VARIABLES --- //
-  let boardIsEmpty = cards.length === 0;
+  // local statea - strictly for the current canvas session
+  const [cards, setCards] = useState(currentVersion.cards || []); // Local copy of the cards which is synced back to the parent subject on save.
+  const [lines, setLines] = useState(currentVersion.lines || []);
+  const [maxZIndex, setMaxZIndex] = useState(0); // Tracks the highest z-index in use so newly dragged cards always appear on top.
+  const [selectedCards, setSelectedCards] = useState([]);
+  const dragging = useRef(null); // Stores drag state on mouse moves
+  const boardRef = useRef(null); // Reference to the board div
 
-  
+  useEffect(() => {
+    if (currentVersion) {
+      setCards(currentVersion.cards || []);
+      setLines(currentVersion.lines || []);
+    }
+  }, [verIndex, currentVersion.name]);
+
   // --- FUNCTIONS --- //
+
+  // Create a new card where the user double-clicks,
+  // block propogation when an existing card is double clicked.
+  function addCard(e) {
+  if (e.target !== boardRef.current) return;
+  const rect = boardRef.current.getBoundingClientRect();
+  const newZ = maxZIndex + 1;
+  const newCard = {
+    id: getNextCardId(),
+    x: e.clientX - rect.left - 110,
+    y: e.clientY - rect.top - 70,
+    text: "",
+    zIndex: newZ,
+    status: "normal"
+  };
+  
+  const newCards = [...cards, newCard];
+  setCards(newCards);
+  setMaxZIndex(newZ);
+  
+  // Save immediately
+  onSaveVersion(verIndex, { cards: newCards, lines });
+}
+  
+  // updates a card
+  function updateCard(id, changes) {
+    const newCards = cards.map(c => c.id === id ? { ...c, ...changes } : c);
+    setCards(newCards);
+    onSaveVersion(verIndex, { cards: newCards, lines });
+  }
+
+  // deletes a card
+  function deleteCard(id) {
+    const newCards = cards.filter(c => c.id !== id);
+    const newLines = lines.filter(l => l.cardId1 !== id && l.cardId2 !== id);
+
+    setCards(newCards);
+    setLines(newLines);
+
+    onSaveVersion(verIndex, { cards: newCards, lines: newLines });
+  }
+
   // Begin dragging a card.
   function handleDragStart(event, id) {
     let card = cards.find(function(draggedCard) { return draggedCard.id === id; });
@@ -66,17 +117,6 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
       startCardX:  card.x,
       startCardY:  card.y,
     };
-  }
-
-  // Cards cannot dragged beyond the header or off the edges of the screen.
-  function pushBackOntoScreen(x, y) {
-    let viewportWidth  = window.innerWidth;
-    let viewportHeight = window.innerHeight;
-
-    let newX = Math.max(0, Math.min(x, viewportWidth - CARD_WIDTH));
-    let newY = Math.max(HEADER_HEIGHT, Math.min(y, viewportHeight - CARD_HEIGHT));
-
-    return { x: newX, y: newY };
   }
 
   // When a card is dropped check if it overlaps with the pinned stationary card,
@@ -125,62 +165,18 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
     return newX, newY;
   }
 
-  // Create a new card where the user double-clicks,
-  // block propogation when an existing card is double clicked.
-  function addCard(event) {
-    if (event.target !== boardRef.current) {
-      return;
-    }
+  // Cards cannot dragged beyond the header or off the edges of the screen.
+  function pushBackOntoScreen(x, y) {
+    let viewportWidth  = window.innerWidth;
+    let viewportHeight = window.innerHeight;
 
-    let rect = boardRef.current.getBoundingClientRect();
-    let newZ = maxZIndex + 1;
+    let newX = Math.max(0, Math.min(x, viewportWidth - CARD_WIDTH));
+    let newY = Math.max(HEADER_HEIGHT, Math.min(y, viewportHeight - CARD_HEIGHT));
 
-    setMaxZIndex(newZ);
-
-    // Centre the new card under the cursor
-    setCards(function(prev) {
-      return [...prev, {
-        id: getNextCardId(),
-        x: event.clientX - rect.left - 110,
-        y: event.clientY - rect.top - 70,
-        text:   "",
-        zIndex: newZ,
-      }];
-    });
+    return { x: newX, y: newY };
   }
 
-  // Apply a content update to a card.
-  function updateCard(id, changes) {
-    setCards(function(prev) {
-      return prev.map(function(changedCard) {
-        if (changedCard.id === id) {
-          return { ...changedCard, ...changes };
-        }
-        return changedCard;
-      });
-    });
-  }
-
-  // Remove a card from the board
-  function deleteCard(id) {
-    setCards(function(prev) {
-      return prev.filter(function(changedCard) { return changedCard.id !== id; });
-    });
-
-    setLines(function(prev) {
-      return prev.filter(function(line) {
-        return line.cardId1 !== id && line.cardId2 !== id;
-      });
-    });
-
-    setSelectedCards(function(prev){
-      return prev.filter(function(cardId){
-        return cardId !== id;
-      });
-  })
-  }
-
-//draws and undraws lines ¯\(°_o)/¯
+  //draws and undraws lines ¯\(°_o)/¯
   function ctrlClickLine(id) {
     setSelectedCards(function(prev) {
       if (prev.includes(id)) {
@@ -188,28 +184,32 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
       }
       if (prev.length === 1) {
         const first = prev[0];
-        // check if there is a line ＼（〇_ｏ）／
+        let nextLines; // Variable to hold the updated lines
+
+        // Check if there is already a line between these two
         const existingIdx = lines.findIndex(function(l) {
           return (
             (l.cardId1 === first && l.cardId2 === id) ||
             (l.cardId1 === id && l.cardId2 === first)
           );
         });
+
         if (existingIdx !== -1) {
-          // if there is a line delete it ╰（‵□′）╯
-          setLines(lines.filter(function(l) {
+          // If it exists, remove it
+          nextLines = lines.filter(function(l) {
             return !(
               (l.cardId1 === first && l.cardId2 === id) ||
               (l.cardId1 === id && l.cardId2 === first)
             );
-          }));
-          return [];
+          });
+        } else {
+          nextLines = [...lines, { cardId1: first, cardId2: id }];
         }
-        // add a new line otherwise ᓚᘏᗢ
-        setLines(function(existing) {
-          return [...existing, { cardId1: first, cardId2: id }];
-        });
-        return [];
+
+        setLines(nextLines); //updates local state
+        onSaveVersion(verIndex, { cards, lines: nextLines }); //save immediately
+
+        return []; // Clear selection
       }
       return [...prev, id];
     });
@@ -223,14 +223,15 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
     return {x: card.x + CARD_WIDTH/2, y: card.y + CARD_HEIGHT/2};
   }
 
-
   // --- EFFECTS --- //
   // Sync card changes back up to the parent subject state whenever cards change
   // onUpdateSubject exists in the App.jsx and will replace the global cards with the local cards.
-  // [cards] is a dependency array. This means that useEffect() is called whenever the local cards object is changed.
-  useEffect(function() {
-    onUpdateSubject({ cards });
-  }, [cards]);
+  // This means that useEffect() is called whenever the local cards object is changed.
+  useEffect(() => {
+    setCards([...currentVersion.cards]);
+    setLines([...currentVersion.lines]);
+    setSelectedCards([]); 
+  }, [verIndex, currentVersion]);
 
   // Attach global mouse listeners for dragging cards.
   // Runs only once (Thats what the empty [] dependency does)
@@ -261,24 +262,24 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
 
     // When the mouse is released, call this function:
     function onMouseUp() {
-      if (!dragging.current) {
-        dragging.current = null;
-        return;
-      }
+      if (!dragging.current) return;
+      const { id } = dragging.current;
 
-      let { id } = dragging.current;
+      let nextCards;
 
-      // On drop, push the card out if it landed on top of the pinned card,
-      // and make sure that it's within the screen borders.
-      setCards(function(prev) {
-        return prev.map(function(changedCard) {
-          if (changedCard.id !== id) {
-            return changedCard;
-          }
-          let { x, y } = pushOutOfPinnedCard(changedCard.x, changedCard.y);
-          return { ...changedCard, x, y };
+      setCards(prev => {
+        nextCards = prev.map(c => {
+          if (c.id !== id) return c;
+          const { x, y } = pushOutOfPinnedCard(c.x, c.y);
+          return { ...c, x, y };
         });
+        return nextCards;
       });
+
+      // saves when mouse is released to prevent framerate drops
+      if (nextCards) {
+        onSaveVersion(verIndex, { cards: nextCards, lines });
+      }
 
       dragging.current = null;
     }
@@ -294,41 +295,12 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
   }, []);
 
 
+  // --- VARIABLES --- //
+  let boardIsEmpty = cards.length === 0;
+
   // --- PAGE CONTENT --- //
   return (
     <div ref={boardRef} className="board" onDoubleClick={addCard}>
-
-      {/* Header */}
-      <div className="header">
-        <div className="header-inner-with-back">
-
-          {/* Back button */}
-          <button className="header-back-btn" onClick={onBack} title="Back">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-          </button>
-
-          <div className="header-content">
-            {/* Title */}
-            <div className="header-site-title">Flashcards</div>
-            {/* Breadcrumb */}
-            <div className="header-breadcrumb">
-              <button className="header-crumb-btn" onClick={openDialog}>
-                <span>Home</span>
-              </button>
-              <span className="header-crumb-sep">›</span>
-              {/* "Sample Subject" is also a back button */}
-              <button className="header-crumb-btn" onClick={onBack}>
-                <span>Sample Subject</span>
-              </button>
-              <span className="header-crumb-sep">›</span>
-              <span className="header-crumb header-crumb-active">{subject.title}</span>
-            </div>
-          </div>
-
-        </div>
-      </div>
 
       {/* Draggable cards (Might be empty) */}
       <div className="board-cards">
@@ -390,7 +362,7 @@ export default function Board({ subject, onUpdateSubject, onBack }) {
           </button>
         </div>
         <div className="pinned-card-body">
-          <strong className="pinned-card-title">{subject.title}</strong>
+          <strong className="pinned-card-title">{subjectTitle}</strong>
           <p className="pinned-card-hint">Double-click the board to add a card.</p>
         </div>
       </div>

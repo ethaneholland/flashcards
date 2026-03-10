@@ -1,43 +1,155 @@
 import { useState } from "react";
 import Board from "./components/Board";
 import Homepage from "./components/Homepage";
+import ErrorDialog from "./components/ErrorDialog";
 import "./styles/global.css";
 
-// Set initial state of the testing board
-const TESTING_SUBJECT = { title: "Sample Story", cards: [] };
+const TESTING_SUBJECT = { 
+  title: "Sample Story", 
+  versions: [
+    { name: "Version 1", cards: [], lines: [] }
+  ] 
+};
 
 export default function App() {
-  // --- STATE --- //
-  // The one subject that exists in the app — holds the title and all cards
-  let [subject, setSubject] = useState(TESTING_SUBJECT);
-  function updateSubject(changes) {
-    setSubject(function(prev) {
-      return { ...prev, ...changes };
+  const [subject, setSubject] = useState(TESTING_SUBJECT);
+  const [verIndex, setVerIndex] = useState(0);
+  const [onBoard, setOnBoard] = useState(false);
+
+  let [showErrorDialog, setShowErrorDialog] = useState(false);
+
+  function updateVersionData(index, newData) {
+    setSubject(prev => {
+      if (index < 0 || index >= prev.versions.length) return prev;
+
+      const newVersions = [...prev.versions];
+      
+      newVersions[index] = {
+        ...newVersions[index],
+        cards: newData.cards,
+        lines: newData.lines
+      };
+
+      return { ...prev, versions: newVersions };
     });
   }
 
-  // Tests whether we are on the homepage or the board
-  let [onBoard, setOnBoard] = useState(false);
-  function goToBoard() {
-    setOnBoard(true);
-  }
-  function goToHomepage() {
-    setOnBoard(false);
+  function createNewVersion() {
+    setSubject(prev => {
+      const current = prev.versions[verIndex];
+
+      // clones cards that are not marked as hidden on the previous version
+      const inheritedCards = current.cards
+        .filter(card => card.status !== 'hidden')
+        .map(card => ({ ...card })); 
+
+      // keeps lines where both connected cards still exist, otherwise don't clone them
+      const inheritedIds = inheritedCards.map(c => c.id);
+      const inheritedLines = current.lines
+        .filter(line => 
+          inheritedIds.includes(line.cardId1) && 
+          inheritedIds.includes(line.cardId2)
+        )
+        .map(line => ({ ...line }));
+
+      const newVersion = {
+        name: `Version ${prev.versions.length + 1}`,
+        cards: inheritedCards,
+        lines: inheritedLines
+      };
+
+      return {
+        ...prev,
+        versions: [...prev.versions, newVersion]
+      };
+    });
+
+    setVerIndex(prev => prev + 1);
   }
 
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  function handleVersionChange(newIndex) {
+    if (isTransitioning) return;
+    
+    setIsTransitioning(true);
+    setVerIndex(newIndex);
+    // adds a delay to the arrow buttons to prevent asychronous render calls that break the state of canvasses 
+    // still buggy sometimes :/   
+    setTimeout(() => setIsTransitioning(false), 500);
+  }
 
   // --- PAGE CONTENT --- //
-  // Overflow will be turned off when on the board, since items may go off the screen (the cards)
   if (onBoard) {
     return (
-      <>
-        <style>{`body { overflow: hidden; }`}</style> 
+      <div className="app-canvas-container" style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+      <style>{`body { margin: 0; padding: 0; overflow: hidden; }`}</style>
+
+        <header className="header">
+          <div className="header-inner">
+            <div className="header-inner-with-back">
+              
+              {/* Breadcrumbs */}
+              <div className="header-pill left-pill">
+                <span className="crumb clickable" onClick={() => setOnBoard(false)}>Home</span>
+                <span className="sep">//</span>
+                <span className="crumb clickable" onClick={() => setOnBoard(false)}>Sample Subject</span>
+                <span className="sep">//</span>
+                <span className="crumb active">{subject.title}</span>
+              </div>
+
+              {/* Canvas Navigator */}
+              <div className="version-navigator-container">
+                <div className="header-pill center-pill">
+                  <button 
+                    className="nav-arrow" 
+                    onClick={() => handleVersionChange(Math.max(0, verIndex - 1))} 
+                    disabled={verIndex === 0 || isTransitioning}
+                  >
+                    ←
+                  </button>
+
+                  <span className="canvas-name">Canvas {verIndex + 1}</span>
+
+                  <button 
+                    className="nav-arrow" 
+                    onClick={() => handleVersionChange(Math.min(subject.versions.length - 1, verIndex + 1))} 
+                    disabled={verIndex === subject.versions.length - 1 || isTransitioning}
+                  >
+                    →
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="header-actions-right">
+                <button className="pill-btn-box" onClick={createNewVersion}>
+                  New <span className="icon">+</span>
+                </button>
+                <button className="pill-btn-box" onClick={() => setShowErrorDialog(true)}>
+                  Delete <span className="icon">X</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </header>
+
         <Board
-          subject={subject}
-          onUpdateSubject={updateSubject}
-          onBack={goToHomepage}
+          key={verIndex}
+          subjectTitle={subject.title}
+          versions={subject.versions}
+          verIndex={verIndex}
+          onSetVerIndex={setVerIndex}
+          onSaveVersion={updateVersionData}
+          onCreateVersion={createNewVersion}
+          onBack={() => setOnBoard(false)}
         />
-      </>
+
+        {showErrorDialog && (
+        <ErrorDialog onDismiss={() => setShowErrorDialog(false)} />
+        )}
+      </div>
     );
   }
 
@@ -46,7 +158,7 @@ export default function App() {
       <style>{`body { overflow: auto; }`}</style>
       <Homepage
         subject={subject}
-        onOpenSubject={goToBoard}
+        onOpenSubject={() => setOnBoard(true)}
       />
     </>
   );
