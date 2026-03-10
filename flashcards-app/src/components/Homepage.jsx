@@ -7,12 +7,12 @@ import "../styles/Header.css";
 export default function Homepage({ subject, onOpenSubject }) {
   // --- STATE --- //
   // Viisibility of the error dialog
-  let [showErrorDialog, setShowErrorDialog] = useState(false);
-  function openDialog() {
-    setShowErrorDialog(true);
+  let [showErrorDialog, setShowErrorDialog] = useState(null);
+  function openDialog(description) {
+    setShowErrorDialog(description);
   }
   function closeDialog() {
-    setShowErrorDialog(false);
+    setShowErrorDialog(null);
   }
 
 
@@ -27,7 +27,7 @@ export default function Homepage({ subject, onOpenSubject }) {
             
             {/* Breadcrumb */}
             <div className="header-pill left-pill">
-              <span className="crumb clickable" onClick={openDialog}>Home</span>
+              <span className="crumb clickable" onClick={() => openDialog("This button will bring you to a new page where you can organize different card decks. You will be able to organize by course, term, etc.")}>Home</span>
               <span className="sep">//</span>
               <span className="crumb active">Sample Subject</span>
             </div>
@@ -47,7 +47,7 @@ export default function Homepage({ subject, onOpenSubject }) {
         <div className="homepage-grid">
 
           {/* Not functional "New" card */}
-          <div className="new-subject-tile" onClick={openDialog}>
+          <div className="new-subject-tile" onClick={() => openDialog("This button will create a new subject card with it's own title, cards, and revisions.")}>
             <div className="new-subject-tile-icon">
               {/* Plus Icon */}
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" >
@@ -59,13 +59,13 @@ export default function Homepage({ subject, onOpenSubject }) {
           </div>
 
           {/* Clicking the Subject Card will open the board */}
-          <SubjectCard subject={subject} onOpen={onOpenSubject} />
+          <SubjectCard subject={subject} onOpen={onOpenSubject} onArchive={() => openDialog("This button will archive the subject and it's contents so that it's removed from this list.")} />
 
         </div>
       </div>
 
       {/* Open an error dialog when a feature isn't implemented */}
-      {showErrorDialog && <ErrorDialog onDismiss={closeDialog} />}
+      {showErrorDialog && <ErrorDialog onDismiss={closeDialog} description={showErrorDialog} />}
 
     </div>
   );

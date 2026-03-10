@@ -18,7 +18,7 @@ const IconHide = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 );
 
-export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, onCtrlClick, isSelected }) {
+export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, onCtrlClick, isSelected, isExiting, isEntering }) {
   const textRef = useRef(null);
 
   // Single source of truth: card.status is one of "locked" | "revise" | "hidden" | "normal"
@@ -28,7 +28,9 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
   let cardClass = "card";
   if (status === "revise") cardClass += " card-revise";
   if (status === "hidden") cardClass += " card-hidden";
-  if (isSelected) cardClass += " card-selected";
+  if (isSelected)          cardClass += " card-selected";
+  if (isEntering)          cardClass += " card-enter";
+  if (isExiting)           cardClass += " card-exit";
 
   useEffect(() => {
     if (textRef.current) {
@@ -39,6 +41,7 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
 
   // --- EVENT HANDLERS ---
   function handleMouseDown(event) {
+    // Handle Ctrl+Click for drawing lines
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
       onCtrlClick(card.id);
@@ -48,8 +51,8 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
   }
 
   // --- FUNCTIONS --- //
-  // Each button sets the status exclusively. Clicking an already-active button
-  // returns to "normal" (deactivate), except lock which stays on toggle.
+  // Each button sets status exclusively, only one can be active at a time.
+  // Clicking an already-active button returns to "normal" (deactivates it).
   const setStatus = (e, newStatus) => {
     e.stopPropagation();
     onUpdate(card.id, { status: status === newStatus ? "normal" : newStatus });
@@ -63,7 +66,7 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
     >
       <div className="card-toolbar">
         <div className="card-toolbar-left">
-          {/* Lock Button — carries card over to next canvas, active = red */}
+          {/* Lock Button */}
           <button
             className={`card-btn ${status === 'locked' ? 'active active-lock' : ''}`}
             onMouseDown={(e) => setStatus(e, "locked")}
@@ -72,7 +75,7 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
             {status === 'locked' ? <IconLock /> : <IconUnlock />}
           </button>
 
-          {/* Revise Button — carries over with dotted border until edited */}
+          {/* Revise Button */}
           <button
             className={`card-btn ${status === 'revise' ? 'active' : ''}`}
             onMouseDown={(e) => setStatus(e, "revise")}
@@ -81,7 +84,7 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
             <IconRevise />
           </button>
           
-          {/* Hide Button — card will not carry over to next canvas */}
+          {/* Hide Button */}
           <button
             className={`card-btn ${status === 'hidden' ? 'active' : ''}`}
             onMouseDown={(e) => setStatus(e, "hidden")}
@@ -103,6 +106,7 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
         </button>
       </div>
       
+      {/* Body - Disable typing if locked */}
       <div className="card-body" onMouseDown={e => e.stopPropagation()}>
         <textarea
           ref={textRef}
@@ -111,7 +115,7 @@ export default function DraggableCard({ card, onDragStart, onUpdate, onDelete, o
           onChange={(e) => {
             // Editing a "revise" card clears the dotted border
             const changes = { text: e.target.value };
-            if (status === "revise") changes.status = "normal";
+            if (status === "revise") changes.status = "locked";
             onUpdate(card.id, changes);
           }}
           placeholder="Write something..."

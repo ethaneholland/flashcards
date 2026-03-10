@@ -22,16 +22,18 @@ export default function Board({
   onSetVerIndex, 
   onSaveVersion, 
   onCreateVersion, 
-  onBack }) {
+  onBack,
+  isNewCanvas,
+  registerNewCanvas }) {
 
   const currentVersion = versions[verIndex];
 
-  let [showErrorDialog, setShowErrorDialog] = useState(false);
-  function openDialog() {
-    setShowErrorDialog(true);
+  let [showErrorDialog, setShowErrorDialog] = useState(null);
+  function openDialog(description) {
+    setShowErrorDialog(description);
   }
   function closeDialog() {
-    setShowErrorDialog(false);
+    setShowErrorDialog(null);
   }
 
   // local statea - strictly for the current canvas session
@@ -39,8 +41,28 @@ export default function Board({
   const [lines, setLines] = useState(currentVersion.lines || []);
   const [maxZIndex, setMaxZIndex] = useState(0); // Tracks the highest z-index in use so newly dragged cards always appear on top.
   const [selectedCards, setSelectedCards] = useState([]);
+  // IDs of cards currently playing their exit animation
+  const [exitingIds, setExitingIds] = useState([]);
+  // IDs of cards that should play their entrance animation on this canvas
+  const [enteringIds, setEnteringIds] = useState(() =>
+    isNewCanvas ? (currentVersion.cards || []).map(c => c.id) : []
+  );
   const dragging = useRef(null); // Stores drag state on mouse moves
   const boardRef = useRef(null); // Reference to the board div
+  const latestSave = useRef(null); // Keeps onSaveVersion/verIndex fresh inside the stale mouseup closure
+  latestSave.current = { onSaveVersion, verIndex, lines, cards };
+
+  // Clear entering animation classes after they've played
+  useEffect(() => {
+    if (enteringIds.length === 0) return;
+    const t = setTimeout(() => setEnteringIds([]), 500);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Register this board's new-canvas handler with the parent (for the header button)
+  useEffect(() => {
+    if (registerNewCanvas) registerNewCanvas(handleNewCanvas);
+  }, [cards]); // re-register when cards change so handleNewCanvas has a fresh closure
 
   useEffect(() => {
     if (currentVersion) {
@@ -63,7 +85,7 @@ export default function Board({
     y: e.clientY - rect.top - 70,
     text: "",
     zIndex: newZ,
-    status: "locked"
+    status: "locked"  // new cards default to locked (carry over)
   };
   
   const newCards = [...cards, newCard];
@@ -90,6 +112,19 @@ export default function Board({
     setLines(newLines);
 
     onSaveVersion(verIndex, { cards: newCards, lines: newLines });
+  }
+
+  // Play exit animation on hidden cards while simultaneously creating the new version
+  function handleNewCanvas() {
+    // Flush latest card positions into parent state before creating the new version,
+    // in case the last drag's save hasn't propagated yet.
+    onSaveVersion(verIndex, { cards, lines });
+
+    const hiddenIds = cards.filter(c => c.status === 'hidden').map(c => c.id);
+    if (hiddenIds.length > 0) {
+      setExitingIds(hiddenIds);
+    }
+    onCreateVersion(0); // create new canvas immediately so enter/exit animations run together
   }
 
   // Begin dragging a card.
@@ -231,7 +266,7 @@ export default function Board({
     setCards([...currentVersion.cards]);
     setLines([...currentVersion.lines]);
     setSelectedCards([]); 
-  }, [verIndex, currentVersion]);
+  }, [verIndex]);
 
   // Attach global mouse listeners for dragging cards.
   // Runs only once (Thats what the empty [] dependency does)
@@ -264,22 +299,18 @@ export default function Board({
     function onMouseUp() {
       if (!dragging.current) return;
       const { id } = dragging.current;
+      const { onSaveVersion: save, verIndex: vi, lines: li, cards: currentCards } = latestSave.current;
 
-      let nextCards;
-
-      setCards(prev => {
-        nextCards = prev.map(c => {
-          if (c.id !== id) return c;
-          const { x, y } = pushOutOfPinnedCard(c.x, c.y);
-          return { ...c, x, y };
-        });
-        return nextCards;
+      const nextCards = currentCards.map(c => {
+        if (c.id !== id) return c;
+        const { x, y } = pushOutOfPinnedCard(c.x, c.y);
+        return { ...c, x, y };
       });
 
+      setCards(nextCards);
+
       // saves when mouse is released to prevent framerate drops
-      if (nextCards) {
-        onSaveVersion(verIndex, { cards: nextCards, lines });
-      }
+      save(vi, { cards: nextCards, lines: li });
 
       dragging.current = null;
     }
@@ -305,6 +336,8 @@ export default function Board({
       {/* Draggable cards (Might be empty) */}
       <div className="board-cards">
         {cards.map(function(card) {
+          const isExiting  = exitingIds.includes(card.id);
+          const isEntering = enteringIds.includes(card.id);
           return (
             <DraggableCard
               key={card.id}
@@ -314,6 +347,8 @@ export default function Board({
               onDelete={deleteCard}
               onCtrlClick={ctrlClickLine}
               isSelected={selectedCards.includes(card.id)}
+              isExiting={isExiting}
+              isEntering={isEntering}
             />
           );
         })}
@@ -353,14 +388,6 @@ export default function Board({
 
       {/* Pinned subject card, fixed in the centre, not draggable */}
       <div className="pinned-card">
-        <div className="pinned-card-toolbar">
-          <button
-            className="pinned-card-archive-btn"
-            onClick={openDialog}
-          >
-            Archive
-          </button>
-        </div>
         <div className="pinned-card-body">
           <strong className="pinned-card-title">{subjectTitle}</strong>
           <p className="pinned-card-hint">Double-click the board to add a card.</p>
@@ -369,7 +396,7 @@ export default function Board({
 
       {/* Error dialog */}
       {showErrorDialog && (
-        <ErrorDialog onDismiss={closeDialog} />
+        <ErrorDialog onDismiss={closeDialog} description={showErrorDialog} />
       )}
 
     </div>

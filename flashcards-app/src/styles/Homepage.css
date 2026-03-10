@@ -89,6 +89,8 @@
 .subject-card-spacer {
   height: 29px;
   flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .subject-card-body {

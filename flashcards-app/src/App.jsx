@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Board from "./components/Board";
 import Homepage from "./components/Homepage";
 import ErrorDialog from "./components/ErrorDialog";
@@ -15,8 +15,12 @@ export default function App() {
   const [subject, setSubject] = useState(TESTING_SUBJECT);
   const [verIndex, setVerIndex] = useState(0);
   const [onBoard, setOnBoard] = useState(false);
+  const [canvasNameKey, setCanvasNameKey] = useState(0); // bumped to retrigger the title fade-in animation
 
-  let [showErrorDialog, setShowErrorDialog] = useState(false);
+  let [showErrorDialog, setShowErrorDialog] = useState(null);
+
+  // Board registers its handleNewCanvas here so the header "New" button can call it
+  const boardNewCanvasRef = useRef(null);
 
   function updateVersionData(index, newData) {
     setSubject(prev => {
@@ -34,15 +38,15 @@ export default function App() {
     });
   }
 
-  function createNewVersion() {
+  function createNewVersion(indexToUse) {
     setSubject(prev => {
-      const current = prev.versions[verIndex];
+      const current = prev.versions[indexToUse];
 
-      // Cards with status 'hidden' are dropped. 'locked' and 'revise' cards carry over.
-      // Carried-over locked cards reset to 'locked' (no change). Revise cards keep their status.
+      // clones cards that are not marked as hidden on the previous version
+      // locked and revise cards carry over; hidden cards are dropped
       const inheritedCards = current.cards
         .filter(card => card.status !== 'hidden')
-        .map(card => ({ ...card, locked: false })); 
+        .map(card => ({ ...card })); 
 
       // keeps lines where both connected cards still exist, otherwise don't clone them
       const inheritedIds = inheritedCards.map(c => c.id);
@@ -66,6 +70,7 @@ export default function App() {
     });
 
     setVerIndex(prev => prev + 1);
+    setCanvasNameKey(prev => prev + 1); // trigger title fade-in animation
   }
 
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -75,9 +80,16 @@ export default function App() {
     
     setIsTransitioning(true);
     setVerIndex(newIndex);
+    setCanvasNameKey(prev => prev + 1); // trigger title fade-in animation
     // adds a delay to the arrow buttons to prevent asychronous render calls that break the state of canvasses 
     // still buggy sometimes :/   
     setTimeout(() => setIsTransitioning(false), 500);
+  }
+
+  // Called by Board after exit animations finish,aits exitDuration ms then creates the version
+  function handleNewCanvasRequest(exitDuration) {
+    const capturedIndex = verIndex; // capture now before any async delay
+    setTimeout(() => createNewVersion(capturedIndex), exitDuration);
   }
 
   // --- PAGE CONTENT --- //
@@ -110,7 +122,8 @@ export default function App() {
                     ←
                   </button>
 
-                  <span className="canvas-name">Canvas {verIndex + 1}</span>
+                  {/* key prop forces remount so the CSS animation replays on every canvas change */}
+                  <span key={canvasNameKey} className="canvas-name canvas-name-animate">Canvas {verIndex + 1}</span>
 
                   <button 
                     className="nav-arrow" 
@@ -124,10 +137,10 @@ export default function App() {
 
               {/* Action Buttons */}
               <div className="header-actions-right">
-                <button className="pill-btn-box" onClick={createNewVersion}>
+                <button className="pill-btn-box" onClick={() => boardNewCanvasRef.current?.()}>
                   New <span className="icon">+</span>
                 </button>
-                <button className="pill-btn-box" onClick={() => setShowErrorDialog(true)}>
+                <button className="pill-btn-box" onClick={() => setShowErrorDialog("This button will delete the canvas revision that you are currently viewing.")}>
                   Delete <span className="icon">X</span>
                 </button>
               </div>
@@ -143,12 +156,14 @@ export default function App() {
           verIndex={verIndex}
           onSetVerIndex={setVerIndex}
           onSaveVersion={updateVersionData}
-          onCreateVersion={createNewVersion}
+          onCreateVersion={handleNewCanvasRequest}
           onBack={() => setOnBoard(false)}
+          isNewCanvas={true}
+          registerNewCanvas={(fn) => { boardNewCanvasRef.current = fn; }}
         />
 
         {showErrorDialog && (
-        <ErrorDialog onDismiss={() => setShowErrorDialog(false)} />
+        <ErrorDialog onDismiss={() => setShowErrorDialog(null)} description={showErrorDialog} />
         )}
       </div>
     );

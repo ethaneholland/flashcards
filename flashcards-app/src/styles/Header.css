@@ -130,3 +130,12 @@
 .pill-btn-box:hover {
   background: #f9f9f9;
 }
+/* --- Canvas title fade-in when version changes --- */
+@keyframes canvas-name-fadein {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.canvas-name-animate {
+  animation: canvas-name-fadein 0.35s ease-out both;
+}
