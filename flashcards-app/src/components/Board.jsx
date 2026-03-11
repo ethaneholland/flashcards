@@ -387,14 +387,6 @@ export default function Board({
         </div>
       )}
 
-      {/* Pinned subject card, fixed in the centre, not draggable
-      <div className="pinned-card">
-        <div className="pinned-card-body">
-          <strong className="pinned-card-title">{subjectTitle}</strong>
-          <p className="pinned-card-hint">Double-click the board to add a card.</p>
-        </div>
-      </div> */}
-
       {/* Error dialog */}
       {showErrorDialog && (
         <ErrorDialog onDismiss={closeDialog} description={showErrorDialog} />

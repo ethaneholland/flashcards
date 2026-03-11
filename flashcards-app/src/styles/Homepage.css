@@ -1,7 +1,7 @@
 .homepage {
   width: 100vw;
   min-height: 100vh;
-  background-color: var(--background-main);
+  background-color: var(--app-background);
   font-family: var(--font-heading);
 }
 
