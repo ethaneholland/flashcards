@@ -68,14 +68,6 @@
   align-items: center;
 }
 
-.footer-logo-full {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  height: 100%;
-  width: 100%;
-}
-
 .footer-logo-img {
   height: 64px;
   width: auto;
